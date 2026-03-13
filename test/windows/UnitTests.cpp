@@ -1214,7 +1214,7 @@ class UnitTests
             validateOutput(
                 commandLine.c_str(),
                 FormatErrorMessage(
-                    std::format(L"Failed to create disk '{}ext4.vhdx': The file exists. ", LXSST_IMPORT_DISTRO_TEST_DIR),
+                    std::format(L"Failed to create disk '{}distro.vhdx': The file exists. ", LXSST_IMPORT_DISTRO_TEST_DIR),
                     L"Wsl/Service/RegisterDistro/ERROR_FILE_EXISTS"));
         }
         else
@@ -1667,7 +1667,7 @@ class UnitTests
 
                 ValidateErrorMessage(
                     L"-d DummyBrokenDistro",
-                    L"Failed to attach disk 'C:\\DoesNotExit\\ext4.vhdx' to WSL2: The system cannot find the path "
+                    L"Failed to attach disk 'C:\\DoesNotExit\\distro.vhdx' to WSL2: The system cannot find the path "
                     L"specified. ",
                     L"Wsl/Service/CreateInstance/MountDisk/ERROR_PATH_NOT_FOUND");
 
@@ -2921,15 +2921,15 @@ Usage:
             validateOutput(
                 L"-d BrokenDistro echo ok",
                 FormatErrorMessage(
-                    L"The distribution failed to start because its virtual disk is corrupted.",
-                    L"Wsl/Service/CreateInstance/WSL_E_DISK_CORRUPTED"));
+                L"The distribution failed to start because its virtual disk is corrupted, of non-expected filesystem, or invalid mount options.\r\n"
+                L"Error code: Wsl/Service/CreateInstance/WSL_E_MOUNT_FAILED\r\n");
 
             // Validate that trying to export the distribution fails with the correct error code.
             validateOutput(
                 L"--export BrokenDistro dummy.tar",
                 FormatErrorMessage(
-                    L"The distribution failed to start because its virtual disk is corrupted.",
-                    L"Wsl/Service/WSL_E_DISK_CORRUPTED"));
+                L"The distribution failed to start because its virtual disk is corrupted, of non-expected filesystem, or invalid mount options.\r\n"
+                L"Error code: Wsl/Service/WSL_E_MOUNT_FAILED\r\n");
 
             // Shutdown WSL to force the disk to detach.
             VERIFY_ARE_EQUAL(LxsstuLaunchWsl(L"--shutdown"), 0L);
@@ -2939,8 +2939,8 @@ Usage:
         validateOutput(
             std::format(L"--import-in-place test-distro-corrupted \"{}\"", vhdPath.wstring()),
             FormatErrorMessage(
-                L"The distribution failed to start because its virtual disk is corrupted.",
-                L"Wsl/Service/RegisterDistro/WSL_E_DISK_CORRUPTED"));
+            L"The distribution failed to start because its virtual disk is corrupted, of non-expected filesystem, or invalid mount options.\r\n"
+            L"Error code: Wsl/Service/RegisterDistro/WSL_E_MOUNT_FAILED\r\n");
 
         // Ensure the VHD can be deleted to make sure it was properly ejected from the VM.
         VERIFY_ARE_EQUAL(DeleteFileW(vhdPath.c_str()), TRUE);
@@ -3352,7 +3352,7 @@ Usage:
                     L"The supplied install location is already in use.", L"Wsl/Service/MoveDistro/ERROR_FILE_EXISTS"));
             // Validate that the distribution still starts and that the vhd hasn't moved.
             validateDistro();
-            VERIFY_IS_TRUE(std::filesystem::exists(std::format(L"{}\\ext4.vhdx", absolutePath)));
+            VERIFY_IS_TRUE(std::filesystem::exists(std::format(L"{}\\distro.vhdx", absolutePath)));
         }
 
         // Try to move the distribution to an invalid path
@@ -3368,7 +3368,7 @@ Usage:
                     L"Wsl/Service/MoveDistro/ERROR_INVALID_NAME"));
             // Validate that the distribution still starts and that the vhd hasn't moved.
             validateDistro();
-            VERIFY_IS_TRUE(std::filesystem::exists(std::format(L"{}\\ext4.vhdx", absolutePath)));
+            VERIFY_IS_TRUE(std::filesystem::exists(std::format(L"{}\\distro.vhdx", absolutePath)));
         }
     }
 
@@ -3408,7 +3408,7 @@ Usage:
             WslShutdown();
             VERIFY_ARE_EQUAL(LxsstuLaunchWsl(std::format(L"--manage {} --move {}", name, moveElevatedFolder)), 0L);
 
-            auto vhdPath = std::format(L"{}\\ext4.vhdx", moveElevatedFolder);
+            auto vhdPath = std::format(L"{}\\distro.vhdx", moveElevatedFolder);
             VERIFY_IS_TRUE(std::filesystem::exists(vhdPath));
             verifyVhdOwner(vhdPath);
 
@@ -3429,7 +3429,7 @@ Usage:
                     nonElevatedToken.get()),
                 0L);
 
-            auto vhdPath = std::format(L"{}\\ext4.vhdx", moveNonElevatedFolder);
+            auto vhdPath = std::format(L"{}\\distro.vhdx", moveNonElevatedFolder);
             VERIFY_IS_TRUE(std::filesystem::exists(vhdPath));
             verifyVhdOwner(vhdPath);
 
@@ -3467,7 +3467,7 @@ Usage:
         WslShutdown();
         VERIFY_ARE_EQUAL(LxsstuLaunchWsl(std::format(L"--manage {} --move {}", name, firstFolder)), 0L);
 
-        auto vhdPath = std::format(L"{}\\ext4.vhdx", firstFolder);
+        auto vhdPath = std::format(L"{}\\distro.vhdx", firstFolder);
         VERIFY_IS_TRUE(std::filesystem::exists(vhdPath));
 
         // Simulate cross-volume MoveFileEx side-effect: change VHD owner to BUILTIN\Administrators.
@@ -3494,7 +3494,7 @@ Usage:
         VERIFY_ARE_EQUAL(
             LxsstuLaunchWsl(std::format(L"--manage {} --move {}", name, secondFolder), nullptr, nullptr, nullptr, nonElevatedToken.get()), 0L);
 
-        auto newVhdPath = std::format(L"{}\\ext4.vhdx", secondFolder);
+        auto newVhdPath = std::format(L"{}\\distro.vhdx", secondFolder);
         VERIFY_IS_TRUE(std::filesystem::exists(newVhdPath));
 
         // A same-volume move preserves the VHD owner.
@@ -3633,7 +3633,7 @@ Usage:
 
         const auto basePath = wsl::windows::common::registry::ReadString(distroKey.get(), nullptr, L"BasePath", L"");
         const auto vhdFileName =
-            wsl::windows::common::registry::ReadString(distroKey.get(), nullptr, L"VhdFileName", L"ext4.vhdx");
+            wsl::windows::common::registry::ReadString(distroKey.get(), nullptr, L"VhdFileName", L"distro.vhdx");
         const auto vhdPath = std::filesystem::path(basePath) / vhdFileName;
         VERIFY_IS_TRUE(std::filesystem::exists(vhdPath));
 
@@ -3826,11 +3826,11 @@ Usage:
 
             // std::pair[0] = Written value, std::pair[1] = Actual/Expected value
             static const std::vector<std::pair<PCWSTR, PCWSTR>> filePathsToTest{
-                {L"C:\\DoesNotExit\\ext4.vhdx", L"C:\\DoesNotExit\\ext4.vhdx"},
-                {L"\\DoesNotExit\\ext4.vhdx", L"\\DoesNotExit\\ext4.vhdx"},
+                {L"C:\\DoesNotExit\\distro.vhdx", L"C:\\DoesNotExit\\distro.vhdx"},
+                {L"\\DoesNotExit\\distro.vhdx", L"\\DoesNotExit\\distro.vhdx"},
                 {L"", L""},
                 // Verifies that reloading preserves BMP Chinese characters and the rocket's UTF-16 surrogate pair (U+1F680).
-                {L"C:\\中文🚀\\ext4.vhdx", L"C:\\中文🚀\\ext4.vhdx"},
+                {L"C:\\中文🚀\\distro.vhdx", L"C:\\中文🚀\\distro.vhdx"},
             };
 
             // tuple: WslConfigSetting, expectedValue, actualValue
