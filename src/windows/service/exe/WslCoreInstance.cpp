@@ -67,7 +67,7 @@ WslCoreInstance::WslCoreInstance(
     {
         // N.B. EFSBADCRC (74) or EFSCORRUPTED (117) can be returned if the disk's journal is corrupted.
         // EIO (5) can be returned during LaunchInit if corruption is detected after the initial mount succeeds.
-        if ((result.Result == EINVAL || result.Result == 74 || result.Result == 117) && result.FailureStep == LxInitCreateInstanceStepMountDisk) ||
+        if ((result.Result == EINVAL || result.Result == 74 || result.Result == 117) && result.FailureStep == LxInitCreateInstanceStepMountDisk ||
             (result.Result == 5 && result.FailureStep == LxInitCreateInstanceStepLaunchInit))
         {
             THROW_HR(WSL_E_MOUNT_FAILED);
